@@ -76,8 +76,6 @@ function calculateStreaks(contributionDays) {
     }
   })
 
-
-
   return {
     currentStreak: streaks.current.reduce((a, b) => Math.max(a, b), -Infinity),
     longestStreak: streaks.longest.reduce((a, b) => Math.max(a, b), -Infinity),
@@ -89,7 +87,6 @@ app.get("/streak/:username", async (req, res) => {
   try {
     const { username } = req.params;
     const data = await getContributions(username);
-    console.log({ data });
     const contributionDays =
       data.data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
         (week) => week.contributionDays
@@ -99,13 +96,13 @@ app.get("/streak/:username", async (req, res) => {
       calculateStreaks(contributionDays);
 
     const svg = `
-      <svg width="495" height="195" xmlns="http://www.w3.org/2000/svg">
+      <svg width="530" height="150" xmlns="http://www.w3.org/2000/svg">
         <style>
           .title { font: 600 18px 'Segoe UI', sans-serif; fill: #58a6ff }
           .stat { font: 600 14px 'Segoe UI', sans-serif; fill: #8b949e }
           .number { font: 600 28px 'Segoe UI', sans-serif; fill: #c9d1d9 }
         </style>
-        <rect width="495" height="195" fill="#0d1117" rx="4.5"/>
+        <rect width="530" height="150" fill="#0d1117" rx="4.5"/>
         <text x="25" y="30" class="title">GitHub Contribution Streak</text>
         <g transform="translate(25, 60)">
           <text class="stat">Current Streak</text>

@@ -1,10 +1,13 @@
-const express = require('express');
-const fetch = require('node-fetch');
+const express = require("express");
+const fetch = require("node-fetch");
+require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3001;
 
 // GitHub Personal Access Token (optional but recommended)
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
+
+console.log({ GITHUB_TOKEN });
 
 // GraphQL query to get contribution data
 const CONTRIBUTION_QUERY = `
@@ -26,19 +29,21 @@ const CONTRIBUTION_QUERY = `
 `;
 
 async function getContributions(username) {
-  const response = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
+  const response = await fetch("https://api.github.com/graphql", {
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${GITHUB_TOKEN}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       query: CONTRIBUTION_QUERY,
-      variables: { username }
-    })
+      variables: { username },
+    }),
   });
 
-  if (!response.ok) throw new Error('GitHub API request failed');
+  console.log({ response });
+
+  if (!response.ok) throw new Error("GitHub API request failed");
   return response.json();
 }
 
@@ -46,34 +51,50 @@ function calculateStreaks(contributionDays) {
   let currentStreak = 0;
   let longestStreak = 0;
   let tempStreak = 0;
-  const today = new Date().toISOString().split('T')[0];
-  
-  contributionDays.reverse().forEach(day => {
+  const today = new Date().toISOString().split("T")[0];
+
+  contributionDays.forEach((day) => {
+    console.log({ day });
     if (day.contributionCount > 0) {
       tempStreak++;
-      if (day.date === today) currentStreak = tempStreak;
+      if (day.date === today){
+        console.log("today")
+        currentStreak = tempStreak;
+      }
     } else {
       longestStreak = Math.max(longestStreak, tempStreak);
       tempStreak = 0;
     }
   });
 
+  console.log({
+    tempStreak,
+    longestStreak,
+    currentStreak,
+  });
+
   return {
     currentStreak: Math.max(currentStreak, tempStreak),
     longestStreak: Math.max(longestStreak, tempStreak),
-    totalContributions: contributionDays.reduce((sum, day) => sum + day.contributionCount, 0)
+    totalContributions: contributionDays.reduce(
+      (sum, day) => sum + day.contributionCount,
+      0
+    ),
   };
 }
 
-app.get('/streak/:username', async (req, res) => {
+app.get("/streak/:username", async (req, res) => {
   try {
     const { username } = req.params;
     const data = await getContributions(username);
-    const contributionDays = data.data.user.contributionsCollection
-      .contributionCalendar.weeks
-      .flatMap(week => week.contributionDays);
-    
-    const { currentStreak, longestStreak, totalContributions } = calculateStreaks(contributionDays);
+    console.log({ data });
+    const contributionDays =
+      data.data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
+        (week) => week.contributionDays
+      );
+
+    const { currentStreak, longestStreak, totalContributions } =
+      calculateStreaks(contributionDays);
 
     const svg = `
       <svg width="495" height="195" xmlns="http://www.w3.org/2000/svg">
@@ -99,10 +120,10 @@ app.get('/streak/:username', async (req, res) => {
       </svg>
     `;
 
-    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader("Content-Type", "image/svg+xml");
     res.send(svg);
   } catch (error) {
-    res.status(500).send('Error generating streak stats');
+    res.status(500).send("Error generating streak stats");
   }
 });
 

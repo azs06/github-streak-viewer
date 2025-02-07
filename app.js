@@ -48,38 +48,40 @@ async function getContributions(username) {
 }
 
 function calculateStreaks(contributionDays) {
-  let currentStreak = 0;
-  let longestStreak = 0;
   let tempStreak = 0;
-  const today = new Date().toISOString().split("T")[0];
+  const streaks = {
+    current: [],
+    longest: [],
+    total: 0,
+  }
 
-  contributionDays.forEach((day) => {
-    console.log({ day });
+  const reversedArray = contributionDays.reverse();
+  // first day is today
+  reversedArray.forEach((day) => {
     if (day.contributionCount > 0) {
       tempStreak++;
-      if (day.date === today){
-        console.log("today")
-        currentStreak = tempStreak;
-      }
-    } else {
-      longestStreak = Math.max(longestStreak, tempStreak);
-      tempStreak = 0;
+    }else{
+        streaks.current.push(tempStreak)
+        tempStreak = 0;
     }
+    streaks.total += day.contributionCount;
   });
 
-  console.log({
-    tempStreak,
-    longestStreak,
-    currentStreak,
-  });
+  contributionDays.forEach(day => {
+    if(day.contributionCount > 0){
+        tempStreak++
+    }else{
+        streaks.longest.push(tempStreak)
+        tempStreak = 0;
+    }
+  })
+
+
 
   return {
-    currentStreak: Math.max(currentStreak, tempStreak),
-    longestStreak: Math.max(longestStreak, tempStreak),
-    totalContributions: contributionDays.reduce(
-      (sum, day) => sum + day.contributionCount,
-      0
-    ),
+    currentStreak: streaks.current.reduce((a, b) => Math.max(a, b), -Infinity),
+    longestStreak: streaks.longest.reduce((a, b) => Math.max(a, b), -Infinity),
+    totalContributions: streaks.total
   };
 }
 

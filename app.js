@@ -72,7 +72,7 @@ function calculateStreaks(contributionDays) {
 
   contributionDays.forEach((day, index) => {
     if (day.contributionCount > 0) {
-      if (!streakStart) {
+      if (!streakEnd) {
         streakStart = null;
         streakEnd = day.date;
       }
@@ -89,10 +89,18 @@ function calculateStreaks(contributionDays) {
     }
   });
 
+  const logsestStreakRange = (() => {
+    const longestRangeKeys = Object.keys(streaks.logestStreak)
+    const longestRangeKey = longestRangeKeys.reduce((a, b) => Math.max(a, b), -Infinity);
+    const range = streaks.logestStreak[longestRangeKey]
+    return `${range.start} - ${range.end}`;
+  })()
+
   return {
     currentStreak: streaks.current.reduce((a, b) => Math.max(a, b), -Infinity),
     longestStreak: streaks.longest.reduce((a, b) => Math.max(a, b), -Infinity),
     totalContributions: streaks.total,
+    longestStreakRange: logsestStreakRange,
   };
 }
 
@@ -106,17 +114,17 @@ app.get("/streak/:username", async (req, res) => {
       );
 
 
-    const { currentStreak, longestStreak, totalContributions } =
+    const { currentStreak, longestStreak, totalContributions, longestStreakRange } =
       calculateStreaks(contributionDays);
 
     const svg = `
-      <svg width="530" height="150" xmlns="http://www.w3.org/2000/svg">
+      <svg width="530" height="190" xmlns="http://www.w3.org/2000/svg">
         <style>
           .title { font: 600 18px 'Segoe UI', sans-serif; fill: #58a6ff }
           .stat { font: 600 14px 'Segoe UI', sans-serif; fill: #8b949e }
           .number { font: 600 28px 'Segoe UI', sans-serif; fill: #c9d1d9 }
         </style>
-        <rect width="530" height="150" fill="#0d1117" rx="4.5"/>
+        <rect width="530" height="190" fill="#0d1117" rx="4.5"/>
         <text x="25" y="30" class="title">GitHub Contribution Streak</text>
         <g transform="translate(25, 60)">
           <text class="stat">Current Streak</text>
@@ -125,6 +133,7 @@ app.get("/streak/:username", async (req, res) => {
         <g transform="translate(200, 60)">
           <text class="stat">Longest Streak</text>
           <text class="number" y="40">${longestStreak} days</text>
+          <text class="stat" y="70">${longestStreakRange}</text>
         </g>
         <g transform="translate(375, 60)">
           <text class="stat">Total Contributions</text>

@@ -41,45 +41,58 @@ async function getContributions(username) {
     }),
   });
 
-  console.log({ response });
-
   if (!response.ok) throw new Error("GitHub API request failed");
   return response.json();
 }
 
 function calculateStreaks(contributionDays) {
   let tempStreak = 0;
+  let streakStart = 0;
+  let streakEnd = 0;
   const streaks = {
     current: [],
     longest: [],
     total: 0,
-  }
+    logestStreak: {},
+    streakStart: null,
+    streakEnd: null,
+  };
 
   const reversedArray = contributionDays.reverse();
   // first day is today
   reversedArray.forEach((day) => {
     if (day.contributionCount > 0) {
       tempStreak++;
-    }else{
-        streaks.current.push(tempStreak)
-        tempStreak = 0;
+    } else {
+      streaks.current.push(tempStreak);
+      tempStreak = 0;
     }
     streaks.total += day.contributionCount;
   });
 
-  contributionDays.forEach(day => {
-    if(day.contributionCount > 0){
-        tempStreak++
-    }else{
-        streaks.longest.push(tempStreak)
-        tempStreak = 0;
+  contributionDays.forEach((day, index) => {
+    if (day.contributionCount > 0) {
+      if (!streakStart) {
+        streakStart = null;
+        streakEnd = day.date;
+      }
+      tempStreak++;
+    } else {
+      streaks.longest.push(tempStreak);
+      streakStart = contributionDays[index - 1].date;
+      streaks.logestStreak[`${tempStreak}`] = {
+        start: streakStart,
+        end: streakEnd,
+      };
+      streakEnd = null;
+      tempStreak = 0;
     }
-  })
+  });
 
   return {
     currentStreak: streaks.current.reduce((a, b) => Math.max(a, b), -Infinity),
     longestStreak: streaks.longest.reduce((a, b) => Math.max(a, b), -Infinity),
-    totalContributions: streaks.total
+    totalContributions: streaks.total,
   };
 }
 
@@ -91,6 +104,7 @@ app.get("/streak/:username", async (req, res) => {
       data.data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
         (week) => week.contributionDays
       );
+
 
     const { currentStreak, longestStreak, totalContributions } =
       calculateStreaks(contributionDays);
@@ -122,6 +136,7 @@ app.get("/streak/:username", async (req, res) => {
     res.setHeader("Content-Type", "image/svg+xml");
     res.send(svg);
   } catch (error) {
+    console.error(error)
     res.status(500).send("Error generating streak stats");
   }
 });

@@ -54,17 +54,29 @@ function calculateStreaks(contributionDays) {
     longest: [],
     total: 0,
     logestStreak: {},
+    currentStreak: {},
     streakStart: null,
     streakEnd: null,
   };
 
   const reversedArray = contributionDays.reverse();
+
   // first day is today
-  reversedArray.forEach((day) => {
+  reversedArray.forEach((day, index) => {
     if (day.contributionCount > 0) {
       tempStreak++;
+      if (!streakEnd) {
+        streakStart = null;
+        streakEnd = day.date;
+      }
     } else {
       streaks.current.push(tempStreak);
+      streakStart = contributionDays[index - 1].date;
+      streaks.currentStreak[`${tempStreak}`] = {
+        start: streakStart,
+        end: streakEnd,
+      };
+      streakEnd = null;
       tempStreak = 0;
     }
     streaks.total += day.contributionCount;
@@ -89,18 +101,36 @@ function calculateStreaks(contributionDays) {
     }
   });
 
+
+  // fix duplication
+
   const logsestStreakRange = (() => {
-    const longestRangeKeys = Object.keys(streaks.logestStreak)
-    const longestRangeKey = longestRangeKeys.reduce((a, b) => Math.max(a, b), -Infinity);
-    const range = streaks.logestStreak[longestRangeKey]
+    const longestRangeKeys = Object.keys(streaks.logestStreak);
+    const longestRangeKey = longestRangeKeys.reduce(
+      (a, b) => Math.max(a, b),
+      -Infinity
+    );
+    const range = streaks.logestStreak[longestRangeKey];
     return `${range.start} - ${range.end}`;
-  })()
+  })();
+  // fix duplication
+  const currentStreakRange = (() => {
+    const currentRangeKeys = Object.keys(streaks.currentStreak);
+    const currentRangeKey = currentRangeKeys.reduce(
+      (a, b) => Math.max(a, b),
+      -Infinity
+    );
+    const range = streaks.currentStreak[currentRangeKey];
+    console.log({ range, currentRangeKey, currentRangeKeys });
+    return `${range.start} - ${range.end}`;
+  })();
 
   return {
     currentStreak: streaks.current.reduce((a, b) => Math.max(a, b), -Infinity),
     longestStreak: streaks.longest.reduce((a, b) => Math.max(a, b), -Infinity),
     totalContributions: streaks.total,
     longestStreakRange: logsestStreakRange,
+    currentStreakRange: currentStreakRange,
   };
 }
 
@@ -113,9 +143,13 @@ app.get("/streak/:username", async (req, res) => {
         (week) => week.contributionDays
       );
 
-
-    const { currentStreak, longestStreak, totalContributions, longestStreakRange } =
-      calculateStreaks(contributionDays);
+    const {
+      currentStreak,
+      longestStreak,
+      totalContributions,
+      longestStreakRange,
+      currentStreakRange,
+    } = calculateStreaks(contributionDays);
 
     const svg = `
       <svg width="530" height="190" xmlns="http://www.w3.org/2000/svg">
@@ -129,6 +163,7 @@ app.get("/streak/:username", async (req, res) => {
         <g transform="translate(25, 60)">
           <text class="stat">Current Streak</text>
           <text class="number" y="40">${currentStreak} days</text>
+          <text class="stat" y="70">${currentStreakRange}</text>
         </g>
         <g transform="translate(200, 60)">
           <text class="stat">Longest Streak</text>
@@ -145,7 +180,7 @@ app.get("/streak/:username", async (req, res) => {
     res.setHeader("Content-Type", "image/svg+xml");
     res.send(svg);
   } catch (error) {
-    console.error(error)
+    console.error(error);
     res.status(500).send("Error generating streak stats");
   }
 });

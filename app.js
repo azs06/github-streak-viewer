@@ -1,30 +1,13 @@
 const express = require("express");
 const fetch = require("node-fetch");
+const { FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY } = require("./grapql");
+const { formatDate } = require("./helpers");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3001;
 
 // GitHub Personal Access Token (optional but recommended)
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
-
-// GraphQL query to get contribution data
-const CONTRIBUTION_QUERY = `
-  query ($username: String!) {
-    user(login: $username) {
-      contributionsCollection {
-        contributionCalendar {
-          totalContributions
-          weeks {
-            contributionDays {
-              contributionCount
-              date
-            }
-          }
-        }
-      }
-    }
-  }
-`;
 
 async function getContributions(username) {
   const response = await fetch("https://api.github.com/graphql", {
@@ -65,8 +48,8 @@ const getStreak = (array) => {
       streak.push(tempStreak);
       streakStart = array[index - 1]?.date;
       streaksObj.streakRange[`${tempStreak}`] = {
-        start: streakStart,
-        end: streakEnd,
+        start: formatDate(streakStart),
+        end: formatDate(streakEnd),
       };
       streakEnd = null;
       tempStreak = 0;
@@ -89,12 +72,60 @@ const getStreak = (array) => {
   };
 };
 
+async function getFirstCommit(username) {
+  try {
+    const response = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: FIRST_COMMIT_QUERY,
+        variables: { username },
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`GitHub API error: ${error.message}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.data?.user?.repositories?.nodes.length) {
+      console.log(`No repositories found for user: ${username}`);
+      return null;
+    }
+
+    const oldestRepo = data.data.user.repositories.nodes.find(
+      (repo) => repo.defaultBranchRef?.target?.history?.edges.length
+    );
+
+    if (!oldestRepo) {
+      console.log(`No commits found for user: ${username}`);
+      return null;
+    }
+
+    const firstCommit =
+      oldestRepo.defaultBranchRef.target.history.edges[0].node;
+
+    return {
+      repository: oldestRepo.name,
+      date: firstCommit.committedDate,
+      message: firstCommit.message,
+      url: firstCommit.url,
+    };
+  } catch (error) {
+    console.error(`Error fetching first commit: ${error.message}`);
+    return null;
+  }
+}
+
 function calculateStreaks(contributionDays) {
- 
-  const reversedArray = contributionDays.reverse();  
+  const reversedArray = contributionDays.reverse();
   const currentStreaks = getStreak(reversedArray);
   const longestStreaks = getStreak(contributionDays);
-
   return {
     currentStreak: currentStreaks.streak,
     longestStreak: longestStreaks.streak,
@@ -108,6 +139,7 @@ app.get("/streak/:username", async (req, res) => {
   try {
     const { username } = req.params;
     const data = await getContributions(username);
+    const firstCommitData = await getFirstCommit(username);
     const contributionDays =
       data.data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
         (week) => week.contributionDays
@@ -120,6 +152,8 @@ app.get("/streak/:username", async (req, res) => {
       longestStreakRange,
       currentStreakRange,
     } = calculateStreaks(contributionDays);
+    const { date } = firstCommitData;
+    const formattedDate = formatDate(date, {year: "numeric", month: "short", day: "numeric"})
 
     const svg = `
       <svg width="530" height="190" xmlns="http://www.w3.org/2000/svg">
@@ -143,6 +177,7 @@ app.get("/streak/:username", async (req, res) => {
         <g transform="translate(375, 60)">
           <text class="stat">Total Contributions</text>
           <text class="number" y="40">${totalContributions}</text>
+          <text class="stat" y="70">${formattedDate}</text>
         </g>
       </svg>
     `;

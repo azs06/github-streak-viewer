@@ -7,8 +7,6 @@ const port = process.env.PORT || 3001;
 // GitHub Personal Access Token (optional but recommended)
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
 
-console.log({ GITHUB_TOKEN });
-
 // GraphQL query to get contribution data
 const CONTRIBUTION_QUERY = `
   query ($username: String!) {
@@ -45,24 +43,18 @@ async function getContributions(username) {
   return response.json();
 }
 
-function calculateStreaks(contributionDays) {
-  let tempStreak = 0;
+const getStreak = (array) => {
   let streakStart = 0;
   let streakEnd = 0;
-  const streaks = {
-    current: [],
-    longest: [],
+  let tempStreak = 0;
+  let streak = [];
+  let streaksObj = {
     total: 0,
-    logestStreak: {},
-    currentStreak: {},
+    streakRange: {},
     streakStart: null,
     streakEnd: null,
   };
-
-  const reversedArray = contributionDays.reverse();
-
-  // first day is today
-  reversedArray.forEach((day, index) => {
+  array.forEach((day, index) => {
     if (day.contributionCount > 0) {
       tempStreak++;
       if (!streakEnd) {
@@ -70,67 +62,45 @@ function calculateStreaks(contributionDays) {
         streakEnd = day.date;
       }
     } else {
-      streaks.current.push(tempStreak);
-      streakStart = contributionDays[index - 1].date;
-      streaks.currentStreak[`${tempStreak}`] = {
+      streak.push(tempStreak);
+      streakStart = array[index - 1]?.date;
+      streaksObj.streakRange[`${tempStreak}`] = {
         start: streakStart,
         end: streakEnd,
       };
       streakEnd = null;
       tempStreak = 0;
     }
-    streaks.total += day.contributionCount;
+    streaksObj.total += day.contributionCount;
   });
-
-  contributionDays.forEach((day, index) => {
-    if (day.contributionCount > 0) {
-      if (!streakEnd) {
-        streakStart = null;
-        streakEnd = day.date;
-      }
-      tempStreak++;
-    } else {
-      streaks.longest.push(tempStreak);
-      streakStart = contributionDays[index - 1].date;
-      streaks.logestStreak[`${tempStreak}`] = {
-        start: streakStart,
-        end: streakEnd,
-      };
-      streakEnd = null;
-      tempStreak = 0;
-    }
-  });
-
-
-  // fix duplication
-
-  const logsestStreakRange = (() => {
-    const longestRangeKeys = Object.keys(streaks.logestStreak);
-    const longestRangeKey = longestRangeKeys.reduce(
+  const longestStreakRange = (() => {
+    const longestRangeKeys = Object.keys(streaksObj.streakRange);
+    const longestStreakRangeKey = longestRangeKeys.reduce(
       (a, b) => Math.max(a, b),
       -Infinity
     );
-    const range = streaks.logestStreak[longestRangeKey];
+    const range = streaksObj.streakRange[longestStreakRangeKey];
     return `${range.start} - ${range.end}`;
   })();
-  // fix duplication
-  const currentStreakRange = (() => {
-    const currentRangeKeys = Object.keys(streaks.currentStreak);
-    const currentRangeKey = currentRangeKeys.reduce(
-      (a, b) => Math.max(a, b),
-      -Infinity
-    );
-    const range = streaks.currentStreak[currentRangeKey];
-    console.log({ range, currentRangeKey, currentRangeKeys });
-    return `${range.start} - ${range.end}`;
-  })();
+  return {
+    total: streaksObj.total,
+    range: longestStreakRange,
+    streak: streak.reduce((a, b) => Math.max(a, b), -Infinity),
+  };
+};
+
+function calculateStreaks(contributionDays) {
+ 
+  const reversedArray = contributionDays.reverse();  
+  const currentStreaks = getStreak(reversedArray);
+  const longestStreaks = getStreak(contributionDays);
 
   return {
-    currentStreak: streaks.current.reduce((a, b) => Math.max(a, b), -Infinity),
-    longestStreak: streaks.longest.reduce((a, b) => Math.max(a, b), -Infinity),
-    totalContributions: streaks.total,
-    longestStreakRange: logsestStreakRange,
-    currentStreakRange: currentStreakRange,
+    currentStreak: currentStreaks.streak,
+    longestStreak: longestStreaks.streak,
+    totalContributions: longestStreaks.total,
+    longestStreakRange: longestStreaks.range,
+    currentStreakRange: currentStreaks.range,
   };
 }
 

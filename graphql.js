@@ -67,7 +67,7 @@ query ($username: String!, $from: DateTime!) {
 }
 `;
 
-module.exports = {
+export {
     CONTRIBUTION_QUERY,
     FIRST_COMMIT_QUERY,
     CONTRIBUTION_QUERY_DATE_TIME

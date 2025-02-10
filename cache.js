@@ -35,7 +35,7 @@ const getCache = async (key, date) => {
   });
 };
 
-module.exports = {
-  saveCache,
-  getCache,
-};
+export {
+    saveCache,
+    getCache
+}

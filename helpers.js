@@ -91,7 +91,7 @@ function calculateLongestStreak(contributionDays) {
     return { maxStreak, longestStreakRange };
   }
 
-module.exports = {
+export {
   formatDate,
   getStreak,
   calculateLongestStreak

@@ -1,15 +1,15 @@
-const express = require("express");
-const fetch = require("node-fetch");
-const {
-  FIRST_COMMIT_QUERY,
-  CONTRIBUTION_QUERY,
-  CONTRIBUTION_QUERY_DATE_TIME,
-} = require("./grapql");
-const { formatDate, getStreak, calculateLongestStreak } = require("./helpers");
-const { saveCache, getCache } = require("./cache");
-const { getSvg } = require("./svg");
+import express from "express";
+//import fetch from "node-fetch";
+import { graphql } from "@octokit/graphql";
+import { FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY } from "./graphql.js";
+import { formatDate, getStreak } from "./helpers.js";
+import { saveCache, getCache } from "./cache.js";
+import { getSvg } from "./svg.js";
+import { getLongestStreak } from "./github.js";
+import dotenv from "dotenv";
 
-require("dotenv").config();
+dotenv.config();
+
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -27,7 +27,9 @@ async function getContributions(username) {
   }
   const expiration = new Date();
   expiration.setHours(expiration.getHours() + 24); // 24 hour
-  const response = await fetch("https://api.github.com/graphql", {
+  const variables = { username };
+
+  /*   const response = await fetch("https://api.github.com/graphql", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -37,39 +39,19 @@ async function getContributions(username) {
       query: CONTRIBUTION_QUERY,
       variables: { username },
     }),
+  }); */
+
+  const response = await graphql(CONTRIBUTION_QUERY, {
+    ...variables,
+    headers: {
+      authorization: `token ${GITHUB_TOKEN}`,
+    },
   });
 
-  if (!response.ok) throw new Error("GitHub API request failed");
-  const data = response.json();
-  await saveCache(CONTRIBUTION_KEY, data, expiration);
-  return data;
-}
-
-async function getAllTimeContributions(username, fromDate) {
-  try {
-    const response = await fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: CONTRIBUTION_QUERY_DATE_TIME,
-        variables: { username, from: fromDate },
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`GitHub API error: ${error.message}`);
-    }
-
-    const data = await response.json();
-    return data.data.user.contributionsCollection.contributionCalendar;
-  } catch (error) {
-    console.error(`Error fetching contributions: ${error.message}`);
-    return null;
-  }
+  //if (!response?.ok) throw new Error("GitHub API request failed");
+  //const data = response.json();
+  await saveCache(CONTRIBUTION_KEY, response, expiration);
+  return response;
 }
 
 async function getFirstCommit(username) {
@@ -78,31 +60,25 @@ async function getFirstCommit(username) {
     return cachedData.value;
   }
   try {
-    const response = await fetch("https://api.github.com/graphql", {
-      method: "POST",
+    const variables = { username };
+
+    const response = await graphql(FIRST_COMMIT_QUERY, {
+      ...variables,
       headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
+        authorization: `token ${GITHUB_TOKEN}`,
       },
-      body: JSON.stringify({
-        query: FIRST_COMMIT_QUERY,
-        variables: { username },
-      }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`GitHub API error: ${error.message}`);
-    }
+    const data = {
+      ...response,
+    };
 
-    const data = await response.json();
-
-    if (!data.data?.user?.repositories?.nodes.length) {
+    if (!data?.user?.repositories?.nodes.length) {
       console.log(`No repositories found for user: ${username}`);
       return null;
     }
 
-    const oldestRepo = data.data.user.repositories.nodes.find(
+    const oldestRepo = data.user.repositories.nodes.find(
       (repo) => repo.defaultBranchRef?.target?.history?.edges.length
     );
 
@@ -127,24 +103,22 @@ async function getFirstCommit(username) {
   }
 }
 
-async function getLongestStreak(username) {
+async function getAllTimeContributions(username, fromDate) {
   try {
-    const firstCommitData = await getFirstCommit(username);
-    if (!firstCommitData) return;
-    const { date } = firstCommitData;
-
-    const contributionData = await getAllTimeContributions(username, date);
-    if (!contributionData) return;
-
-    const contributionDays = contributionData.weeks.flatMap(
-      (week) => week.contributionDays
-    );
-    const { maxStreak, longestStreakRange } =
-      calculateLongestStreak(contributionDays);
-
-    return { maxStreak, longestStreakRange };
+    const today = new Date();
+    today.setHours(today.getHours() + 24);
+    const cachedData = await getCache(ALL_TIME_CONTRIBUTION_KEY);
+    if (cachedData.status == 200) {
+      return cachedData.value;
+    }
+    const date = new Date(fromDate);
+    const year = date.getFullYear();
+    const data = getLongestStreak(username, year, GITHUB_TOKEN);
+    saveCache(ALL_TIME_CONTRIBUTION_KEY, data, today);
+    return data;
   } catch (error) {
-    console.error(`Error calculating longest streak: ${error.message}`);
+    console.error(`Error fetching contributions: ${error.message}`);
+    return null;
   }
 }
 
@@ -162,21 +136,29 @@ app.get("/streak/:username", async (req, res) => {
     const { username } = req.params;
     let data = await getContributions(username);
     let firstCommitData = await getFirstCommit(username);
-    const longestStreakData = await getLongestStreak(username);
+    console.log({ firstCommitData });
+    const longestStreakData = await getAllTimeContributions(
+      username,
+      firstCommitData?.date
+    );
     const contributionDays =
-      data.data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
+      data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
         (week) => week.contributionDays
       );
 
     const { currentStreak, totalContributions, currentStreakRange } =
       calculateStreaks(contributionDays);
-    const { maxStreak: longestStreak, longestStreakRange } = longestStreakData;
     const { date } = firstCommitData;
     const formattedDate = formatDate(date, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
+
+    const longestStreak = longestStreakData ? longestStreakData.length : 0;
+    const longestStreakRange = longestStreakData
+      ? `${longestStreakData.start} - ${longestStreakData.end}`
+      : "";
 
     const svg = getSvg({
       currentStreak,

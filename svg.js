@@ -28,6 +28,6 @@ const getSvg = ({currentStreak, currentStreakRange, longestStreak, longestStreak
   return svg
 }
 
-module.exports = {
+export {
     getSvg
 }

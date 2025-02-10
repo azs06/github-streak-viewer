@@ -1,26 +1,11 @@
 import { graphql } from "@octokit/graphql";
+import { CONTRIBUTION_QUERY_DATE_TIME } from "./graphql.js";
 
 const fetchContributionData = async (username, token, fromDate, toDate) => {
-  const query = `
-        query ($username: String!, $fromDate: DateTime!, $toDate: DateTime!) {
-            user(login: $username) {
-                contributionsCollection(from: $fromDate, to: $toDate) {
-                    contributionCalendar {
-                        weeks {
-                            contributionDays {
-                                date
-                                contributionCount
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    `;
 
   const variables = { username, fromDate, toDate };
 
-  const response = await graphql(query, {
+  const response = await graphql(CONTRIBUTION_QUERY_DATE_TIME, {
     ...variables,
     headers: {
       authorization: `token ${token}`,
@@ -96,7 +81,7 @@ const fetchAllContributionData = async (username, token, startYear) => {
   return allContributions;
 };
 
-const getLongestStreak = async (username, startYear = 2012, token ) => {
+const getLongestStreak = async (username, startYear = 2012, token) => {
   try {
     const contributions = await fetchAllContributionData(
       username,

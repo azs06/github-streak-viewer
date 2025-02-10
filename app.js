@@ -2,9 +2,14 @@ const express = require("express");
 const fetch = require("node-fetch");
 const { FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY } = require("./grapql");
 const { formatDate } = require("./helpers");
+const { saveCache, getCache } = require("./cache");
+
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3001;
+
+const CONTRIBUTION_KEY = "github_contribution";
+const FIRST_COMMIT_KEY = "github_first_commit";
 
 // GitHub Personal Access Token (optional but recommended)
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
@@ -135,11 +140,30 @@ function calculateStreaks(contributionDays) {
   };
 }
 
+const getCachedData = async () => {};
+
 app.get("/streak/:username", async (req, res) => {
   try {
     const { username } = req.params;
-    const data = await getContributions(username);
-    const firstCommitData = await getFirstCommit(username);
+    let data;
+    const cachedData = await getCache(CONTRIBUTION_KEY, new Date());
+    if (cachedData.status == 200) {
+      data = cachedData.value;
+    } else {
+      data = await getContributions(username);
+      const today = new Date();
+      const expiration = 24; // 24 hour
+      today.setHours(today.getHours() + expiration);
+      saveCache(CONTRIBUTION_KEY, data, today);
+    }
+    let firstCommitData = null;
+    const cachedCommitData = await getCache(FIRST_COMMIT_KEY, new Date());
+    if (cachedCommitData.status == 200) {
+      firstCommitData = cachedCommitData.value;
+    } else {
+      firstCommitData = await getFirstCommit(username);
+      saveCache(FIRST_COMMIT_KEY, firstCommitData, Infinity);
+    }
     const contributionDays =
       data.data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
         (week) => week.contributionDays
@@ -153,7 +177,11 @@ app.get("/streak/:username", async (req, res) => {
       currentStreakRange,
     } = calculateStreaks(contributionDays);
     const { date } = firstCommitData;
-    const formattedDate = formatDate(date, {year: "numeric", month: "short", day: "numeric"})
+    const formattedDate = formatDate(date, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
 
     const svg = `
       <svg width="530" height="190" xmlns="http://www.w3.org/2000/svg">

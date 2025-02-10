@@ -140,30 +140,35 @@ function calculateStreaks(contributionDays) {
   };
 }
 
-const getCachedData = async () => {};
+const getCachedData = async (cachFn, fetchFn, expiration, cachKey) => {
+  let data;
+  const cachedData = await cachFn;
+  if (cachedData.status == 200) {
+    data = cachedData.value;
+  } else {
+    data = await fetchFn;
+    saveCache(cachKey, data, expiration);
+  }
+  return data;
+};
 
 app.get("/streak/:username", async (req, res) => {
   try {
     const { username } = req.params;
-    let data;
-    const cachedData = await getCache(CONTRIBUTION_KEY, new Date());
-    if (cachedData.status == 200) {
-      data = cachedData.value;
-    } else {
-      data = await getContributions(username);
-      const today = new Date();
-      const expiration = 24; // 24 hour
-      today.setHours(today.getHours() + expiration);
-      saveCache(CONTRIBUTION_KEY, data, today);
-    }
-    let firstCommitData = null;
-    const cachedCommitData = await getCache(FIRST_COMMIT_KEY, new Date());
-    if (cachedCommitData.status == 200) {
-      firstCommitData = cachedCommitData.value;
-    } else {
-      firstCommitData = await getFirstCommit(username);
-      saveCache(FIRST_COMMIT_KEY, firstCommitData, Infinity);
-    }
+    const expiration = new Date();
+    expiration.setHours(expiration.getHours() + 24); // 24 hour
+    let data = await getCachedData(
+      getCache(CONTRIBUTION_KEY, new Date()),
+      await getContributions(username),
+      expiration,
+      CONTRIBUTION_KEY
+    );
+    let firstCommitData = await getCachedData(
+      getCache(FIRST_COMMIT_KEY, new Date()),
+      getFirstCommit(username),
+      Infinity,
+      FIRST_COMMIT_KEY
+    );
     const contributionDays =
       data.data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
         (week) => week.contributionDays

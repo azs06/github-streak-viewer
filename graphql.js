@@ -50,19 +50,20 @@ const CONTRIBUTION_QUERY = `
 `;
 
 const CONTRIBUTION_QUERY_DATE_TIME = `
-        query ($username: String!, $fromDate: DateTime!, $toDate: DateTime!) {
-            user(login: $username) {
-                contributionsCollection(from: $fromDate, to: $toDate) {
-                    contributionCalendar {
-                        weeks {
-                            contributionDays {
-                                date
-                                contributionCount
-                            }
-                        }
+query ($username: String!, $fromDate: DateTime!, $toDate: DateTime!) {
+    user(login: $username) {
+        contributionsCollection(from: $fromDate, to: $toDate) {
+            contributionCalendar {
+                weeks {
+                    contributionDays {
+                        date
+                        contributionCount
                     }
                 }
             }
+        }
+    }
+}
 `;
 
 export { CONTRIBUTION_QUERY, FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY_DATE_TIME };

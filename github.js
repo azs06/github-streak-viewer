@@ -2,7 +2,6 @@ import { graphql } from "@octokit/graphql";
 import { CONTRIBUTION_QUERY_DATE_TIME } from "./graphql.js";
 
 const fetchContributionData = async (username, token, fromDate, toDate) => {
-
   const variables = { username, fromDate, toDate };
 
   const response = await graphql(CONTRIBUTION_QUERY_DATE_TIME, {

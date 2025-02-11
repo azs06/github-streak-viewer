@@ -2,7 +2,7 @@ import express from "express";
 //import fetch from "node-fetch";
 import { graphql } from "@octokit/graphql";
 import { FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY } from "./graphql.js";
-import { formatDate, getStreak, calculateStreaks } from "./helpers.js";
+import { formatDate, getStreak } from "./helpers.js";
 import { saveCache, getCache } from "./cache.js";
 import { getSvg } from "./svg.js";
 import { getLongestStreak } from "./github.js";
@@ -108,10 +108,8 @@ async function getAllTimeContributions(username, fromDate) {
 
 function calculateStreaks(contributionDays) {
   const currentStreaks = getStreak(contributionDays.reverse());
-  const altData = calculateStreaks(contributionDays.reverse());
-  const streakData = Array.isArray(altData) ? altData[0] : {};
   return {
-    currentStreak: currentStreaks.streak,
+    currentStreak: currentStreaks.longestStreak,
     totalContributions: currentStreaks.total,
     currentStreakRange: currentStreaks.range,
   };

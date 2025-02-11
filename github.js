@@ -1,5 +1,6 @@
 import { graphql } from "@octokit/graphql";
 import { CONTRIBUTION_QUERY_DATE_TIME } from "./graphql.js";
+import { calculateStreaks } from "./helpers.js";
 
 const fetchContributionData = async (username, token, fromDate, toDate) => {
   const variables = { username, fromDate, toDate };
@@ -18,13 +19,13 @@ const parseContributionData = (weeks) => {
   const contributions = [];
   weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
-      contributions.push({ date: day.date, count: day.contributionCount });
+      contributions.push({ date: day.date, count: day.contributionCount, day });
     });
   });
   return contributions;
 };
 
-const calculateStreaks = (contributions) => {
+/* const calculateStreaks = (contributions) => {
   const streaks = [];
   let currentStreak = 0;
   let streakStartDate = null;
@@ -58,7 +59,7 @@ const calculateStreaks = (contributions) => {
   }
 
   return streaks.sort((a, b) => b.length - a.length);
-};
+}; */
 
 const fetchAllContributionData = async (username, token, startYear) => {
   const currentYear = new Date().getFullYear();

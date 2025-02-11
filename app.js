@@ -2,7 +2,7 @@ import express from "express";
 //import fetch from "node-fetch";
 import { graphql } from "@octokit/graphql";
 import { FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY } from "./graphql.js";
-import { formatDate, getStreak } from "./helpers.js";
+import { formatDate, getStreak, calculateStreaks } from "./helpers.js";
 import { saveCache, getCache } from "./cache.js";
 import { getSvg } from "./svg.js";
 import { getLongestStreak } from "./github.js";
@@ -28,28 +28,12 @@ async function getContributions(username) {
   const expiration = new Date();
   expiration.setHours(expiration.getHours() + 24); // 24 hour
   const variables = { username };
-
-  /*   const response = await fetch("https://api.github.com/graphql", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${GITHUB_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: CONTRIBUTION_QUERY,
-      variables: { username },
-    }),
-  }); */
-
   const response = await graphql(CONTRIBUTION_QUERY, {
     ...variables,
     headers: {
       authorization: `token ${GITHUB_TOKEN}`,
     },
   });
-
-  //if (!response?.ok) throw new Error("GitHub API request failed");
-  //const data = response.json();
   await saveCache(CONTRIBUTION_KEY, response, expiration);
   return response;
 }
@@ -124,6 +108,8 @@ async function getAllTimeContributions(username, fromDate) {
 
 function calculateStreaks(contributionDays) {
   const currentStreaks = getStreak(contributionDays.reverse());
+  const altData = calculateStreaks(contributionDays.reverse());
+  const streakData = Array.isArray(altData) ? altData[0] : {};
   return {
     currentStreak: currentStreaks.streak,
     totalContributions: currentStreaks.total,
@@ -136,7 +122,6 @@ app.get("/streak/:username", async (req, res) => {
     const { username } = req.params;
     let data = await getContributions(username);
     let firstCommitData = await getFirstCommit(username);
-    console.log({ firstCommitData });
     const longestStreakData = await getAllTimeContributions(
       username,
       firstCommitData?.date

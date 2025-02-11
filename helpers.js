@@ -7,6 +7,17 @@ const formatDate = (date, options = {}) => {
   return new Date(date)?.toLocaleDateString("en-US", optionToUse);
 };
 
+const getLongestStreakRange = (streakRange) => {
+  if (!streakRange) return "";
+  const longestRangeKeys = Object.keys(streakRange);
+  const longestStreakRangeKey = longestRangeKeys.reduce(
+    (a, b) => Math.max(a, b),
+    -Infinity
+  );
+  const range = streaksObj.streakRange[longestStreakRangeKey];
+  return `${range.start} - ${range.end}`;
+};
+
 const getStreak = (array) => {
   if (!Array.isArray(array)) {
     return {
@@ -22,8 +33,6 @@ const getStreak = (array) => {
   let streaksObj = {
     total: 0,
     streakRange: {},
-    streakStart: null,
-    streakEnd: null,
   };
   array.forEach((day, index) => {
     if (day.contributionCount > 0) {
@@ -44,15 +53,7 @@ const getStreak = (array) => {
     }
     streaksObj.total += day.contributionCount;
   });
-  const longestStreakRange = (() => {
-    const longestRangeKeys = Object.keys(streaksObj.streakRange);
-    const longestStreakRangeKey = longestRangeKeys.reduce(
-      (a, b) => Math.max(a, b),
-      -Infinity
-    );
-    const range = streaksObj.streakRange[longestStreakRangeKey];
-    return `${range.start} - ${range.end}`;
-  })();
+  const longestStreakRange = getLongestStreakRange(streaksObj.range);
   return {
     total: streaksObj.total,
     range: longestStreakRange,
@@ -60,39 +61,71 @@ const getStreak = (array) => {
   };
 };
 
-function calculateLongestStreak(contributionDays) {
-    let maxStreak = 0;
-    let currentStreak = 0;
-    let streakStart = null;
-    let streakEnd = null;
-    let longestStreakRange = "";
-  
-    contributionDays.forEach((day) => {
-      if (day.contributionCount > 0) {
-        currentStreak++;
-        streakEnd = streakEnd || day.date;
-      } else {
-        if (currentStreak > maxStreak) {
-          maxStreak = currentStreak;
-          longestStreakRange = `${streakStart} - ${streakEnd}`;
-        }
-        currentStreak = 0;
-        streakStart = null;
-        streakEnd = null;
+const calculateStreaks = (contributions) => {
+  const streaks = [];
+  let currentStreak = 0;
+  let streakStartDate = null;
+  let streakEndDate = null;
+
+  contributions.forEach(({ date, count }) => {
+    if (count > 0) {
+      if (currentStreak === 0) {
+        streakStartDate = date;
       }
-      streakStart = streakStart || day.date;
-    });
-  
-    if (currentStreak > maxStreak) {
-      maxStreak = currentStreak;
-      longestStreakRange = `${streakStart} - ${streakEnd}`;
+      currentStreak += 1;
+      streakEndDate = date;
+    } else {
+      if (currentStreak > 0) {
+        streaks.push({
+          start: streakStartDate,
+          end: streakEndDate,
+          length: currentStreak,
+        });
+      }
+      currentStreak = 0;
     }
-  
-    return { maxStreak, longestStreakRange };
+  });
+
+  if (currentStreak > 0) {
+    streaks.push({
+      start: streakStartDate,
+      end: streakEndDate,
+      length: currentStreak,
+    });
   }
 
-export {
-  formatDate,
-  getStreak,
-  calculateLongestStreak
+  return streaks.sort((a, b) => b.length - a.length);
 };
+
+function calculateLongestStreak(contributionDays) {
+  let maxStreak = 0;
+  let currentStreak = 0;
+  let streakStart = null;
+  let streakEnd = null;
+  let longestStreakRange = "";
+
+  contributionDays.forEach((day) => {
+    if (day.contributionCount > 0) {
+      currentStreak++;
+      streakEnd = streakEnd || day.date;
+    } else {
+      if (currentStreak > maxStreak) {
+        maxStreak = currentStreak;
+        longestStreakRange = `${streakStart} - ${streakEnd}`;
+      }
+      currentStreak = 0;
+      streakStart = null;
+      streakEnd = null;
+    }
+    streakStart = streakStart || day.date;
+  });
+
+  if (currentStreak > maxStreak) {
+    maxStreak = currentStreak;
+    longestStreakRange = `${streakStart} - ${streakEnd}`;
+  }
+
+  return { maxStreak, longestStreakRange };
+}
+
+export { formatDate, getStreak, calculateLongestStreak, calculateStreaks };

@@ -1,5 +1,9 @@
 import { graphql } from "@octokit/graphql";
 import { CONTRIBUTION_QUERY_DATE_TIME } from "./graphql.js";
+import { saveCache, getCache } from "./cache.js";
+
+const CONTRIBUTION_DATA = "contribution_data";
+
 //import { calculateStreaks } from "./helpers.js";
 
 const calculateStreaks = (contributions) => {
@@ -40,6 +44,11 @@ const calculateStreaks = (contributions) => {
 
 const fetchContributionData = async (username, token, fromDate, toDate) => {
   const variables = { username, fromDate, toDate };
+  const key = `${CONTRIBUTION_DATA}_${fromDate}_${toDate}_${username}`;
+  const cachedData = await getCache(key);
+  if(cachedData.status == 200){
+    return cachedData.value;
+  }
 
   const response = await graphql(CONTRIBUTION_QUERY_DATE_TIME, {
     ...variables,
@@ -48,7 +57,16 @@ const fetchContributionData = async (username, token, fromDate, toDate) => {
     },
   });
 
-  return response.user.contributionsCollection.contributionCalendar.weeks;
+  const data = response.user.contributionsCollection.contributionCalendar.weeks;
+  const today = new Date();
+  const year = today.getFullYear();
+  const toDateYear = toDate.split('-')[0]; // date format example: 24-12-31
+  /* expiration is 7 days for current year, infinity for previous years */
+  const expiration = toDateYear >= year%100 ? today.setDate(today.getDate() + 7) : Infinity;
+
+  saveCache(key, data, expiration)
+
+  return data;
 };
 
 const parseContributionData = (weeks) => {
@@ -82,6 +100,7 @@ const fetchAllContributionData = async (username, token, startYear) => {
 
   return allContributions;
 };
+
 
 const getLongestStreak = async (username, startYear = 2012, token) => {
   try {

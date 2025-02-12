@@ -1,31 +1,8 @@
 import { graphql } from "@octokit/graphql";
 import { CONTRIBUTION_QUERY_DATE_TIME } from "./graphql.js";
-import { calculateStreaks } from "./helpers.js";
+//import { calculateStreaks } from "./helpers.js";
 
-const fetchContributionData = async (username, token, fromDate, toDate) => {
-  const variables = { username, fromDate, toDate };
-
-  const response = await graphql(CONTRIBUTION_QUERY_DATE_TIME, {
-    ...variables,
-    headers: {
-      authorization: `token ${token}`,
-    },
-  });
-
-  return response.user.contributionsCollection.contributionCalendar.weeks;
-};
-
-const parseContributionData = (weeks) => {
-  const contributions = [];
-  weeks.forEach((week) => {
-    week.contributionDays.forEach((day) => {
-      contributions.push({ date: day.date, count: day.contributionCount, day });
-    });
-  });
-  return contributions;
-};
-
-/* const calculateStreaks = (contributions) => {
+const calculateStreaks = (contributions) => {
   const streaks = [];
   let currentStreak = 0;
   let streakStartDate = null;
@@ -59,7 +36,32 @@ const parseContributionData = (weeks) => {
   }
 
   return streaks.sort((a, b) => b.length - a.length);
-}; */
+}; 
+
+const fetchContributionData = async (username, token, fromDate, toDate) => {
+  const variables = { username, fromDate, toDate };
+
+  const response = await graphql(CONTRIBUTION_QUERY_DATE_TIME, {
+    ...variables,
+    headers: {
+      authorization: `token ${token}`,
+    },
+  });
+
+  return response.user.contributionsCollection.contributionCalendar.weeks;
+};
+
+const parseContributionData = (weeks) => {
+  const contributions = [];
+  weeks.forEach((week) => {
+    week.contributionDays.forEach((day) => {
+      contributions.push({ date: day.date, count: day.contributionCount, day });
+    });
+  });
+  return contributions;
+};
+
+
 
 const fetchAllContributionData = async (username, token, startYear) => {
   const currentYear = new Date().getFullYear();

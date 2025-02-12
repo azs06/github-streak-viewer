@@ -108,7 +108,6 @@ async function getAllTimeContributions(username, fromDate) {
 
 function calculateStreaks(contributionDays) {
   const currentStreaks = getStreak(contributionDays);
-  console.log({currentStreaks})
   return {
     currentStreak: currentStreaks.longestStreak,
     totalContributions: currentStreaks.total,

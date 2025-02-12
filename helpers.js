@@ -25,7 +25,7 @@ const getStreak = (contributions = []) => {
     return {
       total: 0,
       range: "",
-      streak: 0,
+      longestStreak: 0,
       streaks: [],
     };
   }
@@ -78,7 +78,7 @@ const getStreak = (contributions = []) => {
   return {
     total: total,
     range: longestStreakRange,
-    longestStreak: streaks.reduce((a, b) => Math.max(a.length, b.length), -Infinity),
+    longestStreak: streaks.length ? Math.max(...streaks.map(s => s.length)) : 0,
     streaks,
   };
 };

@@ -119,7 +119,7 @@ async function getFirstCommit(username) {
   }
 }
 
-const getLongestStreak = async (
+const getStreakData = async (
   username,
   startYear = 2012,
   currentDate = new Date()
@@ -156,7 +156,7 @@ async function getAllTimeContributions(
     }
     const date = new Date(fromDate);
     const year = date.getFullYear();
-    const data = getLongestStreak(username, year, currentDate);
+    const data = getStreakData(username, year, currentDate);
     saveCache(ALL_TIME_CONTRIBUTION_KEY, data, today);
     return data;
   } catch (error) {
@@ -166,7 +166,7 @@ async function getAllTimeContributions(
 }
 
 export {
-  getLongestStreak,
+  getStreakData,
   getContributions,
   getFirstCommit,
   getAllTimeContributions,

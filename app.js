@@ -1,8 +1,7 @@
 import express from "express";
-import { formatDate, getStreak } from "./helpers.js";
+import { formatDate } from "./helpers.js";
 import { getSvg } from "./svg.js";
 import {
-  getLongestStreak,
   getContributions,
   getFirstCommit,
   getAllTimeContributions,

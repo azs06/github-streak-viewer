@@ -2,7 +2,6 @@ import express from "express";
 import { formatDate } from "./helpers.js";
 import { getSvg } from "./svg.js";
 import {
-  getContributions,
   getFirstCommit,
   getAllTimeContributions,
 } from "./github.js";
@@ -13,14 +12,6 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3001;
 
-/* function calculateStreaks(contributionDays) {
-  const currentStreaks = getStreak(contributionDays);
-  return {
-    currentStreak: currentStreaks.longestStreak,
-    totalContributions: currentStreaks.total,
-    currentStreakRange: currentStreaks.range,
-  };
-} */
 
 app.get("/streak/:username", async (req, res) => {
   try {
@@ -36,20 +27,10 @@ app.get("/streak/:username", async (req, res) => {
 
     return res.json(longestStreakData);
 
-        //const contributionData = await getContributions(username);
-
-    /*     const contributionDays =
-      contributionData.user.contributionsCollection.contributionCalendar.weeks.flatMap(
-        (week) => week.contributionDays
-      ); */
-
-    /*     const { currentStreak, totalContributions, currentStreakRange } =
-      calculateStreaks(contributionDays); */
     const currentStreak = 0;
     const totalContributions = 0;
     const currentStreakRange = "";
-    const { date } = firstCommitData;
-    const formattedDate = formatDate(date, {
+    const formattedDate = formatDate(firstCommitDate, {
       year: "numeric",
       month: "short",
       day: "numeric",

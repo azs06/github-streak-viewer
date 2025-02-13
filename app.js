@@ -14,20 +14,20 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3001;
 
-function calculateStreaks(contributionDays) {
+/* function calculateStreaks(contributionDays) {
   const currentStreaks = getStreak(contributionDays);
   return {
     currentStreak: currentStreaks.longestStreak,
     totalContributions: currentStreaks.total,
     currentStreakRange: currentStreaks.range,
   };
-}
+} */
 
 app.get("/streak/:username", async (req, res) => {
   try {
     const { username } = req.params;
-    //const firstCommitData = await getFirstCommit(username);
-    const firstCommitDate = "2012-11-05T11:32:22Z";
+    const firstCommitData = await getFirstCommit(username);
+    const firstCommitDate = firstCommitData?.date;
     const currentDate = new Date().toISOString();
     const longestStreakData = await getAllTimeContributions(
       username,
@@ -35,9 +35,9 @@ app.get("/streak/:username", async (req, res) => {
       currentDate
     );
 
-    //const contributionData = await getContributions(username);
-
     return res.json(longestStreakData);
+
+        //const contributionData = await getContributions(username);
 
     /*     const contributionDays =
       contributionData.user.contributionsCollection.contributionCalendar.weeks.flatMap(

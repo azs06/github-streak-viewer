@@ -1,7 +1,7 @@
 const FIRST_COMMIT_QUERY = `
 query ($username: String!) {
   user(login: $username) {
-    repositories(first: 100, orderBy: {field: CREATED_AT, direction: ASC}) {
+    repositories(first: 10, orderBy: {field: CREATED_AT, direction: ASC}) {
       nodes {
         name
         createdAt

@@ -92,7 +92,6 @@ const getStreak = (contributions = []) => {
 };
 
 const calculateStreaks = (contributions) => {
-  console.log({ contributions });
   const { streaks } = getStreak(contributions);
 
   return streaks.sort((a, b) => b.length - a.length);
@@ -129,4 +128,14 @@ function calculateLongestStreak(contributionDays) {
   return { maxStreak, longestStreakRange };
 }
 
-export { formatDate, getStreak, calculateLongestStreak, calculateStreaks };
+const parseContributionData = (weeks) => {
+  const contributions = [];
+  weeks.forEach((week) => {
+    week.contributionDays.forEach((day) => {
+      contributions.push({ ...day });
+    });
+  });
+  return contributions;
+};
+
+export { formatDate, getStreak, calculateLongestStreak, calculateStreaks, parseContributionData };

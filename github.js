@@ -1,50 +1,54 @@
-import { graphql } from "@octokit/graphql";
-import { CONTRIBUTION_QUERY_DATE_TIME } from "./graphql.js";
+import {
+  CONTRIBUTION_QUERY_DATE_TIME,
+  FIRST_COMMIT_QUERY,
+  CONTRIBUTION_QUERY,
+} from "./graphql.js";
 import { saveCache, getCache } from "./cache.js";
-const CONTRIBUTION_DATA = "contribution_data";
+import { CONTRIBUTION_DATA } from "./constant.js";
+import { calculateStreaks, parseContributionData, getStreak } from "./helpers.js";
+import { graphqlClient } from "./graphql-client.js";
 
-import { calculateStreaks } from "./helpers.js";
+async function getContributions(username) {
+  const cachedData = await getCache(CONTRIBUTION_KEY);
+  if (cachedData.status == 200) {
+    return cachedData.value;
+  }
+  const expiration = new Date();
+  expiration.setHours(expiration.getHours() + 24); // 24 hour
+  const variables = { username };
+  const response = await graphqlClient(CONTRIBUTION_QUERY, {
+    ...variables,
+  });
+  await saveCache(CONTRIBUTION_KEY, response, expiration);
+  return response;
+}
 
-const fetchContributionData = async (username, token, fromDate, toDate) => {
+const fetchContributionData = async (username, fromDate, toDate) => {
   const variables = { username, fromDate, toDate };
   const key = `${CONTRIBUTION_DATA}_${fromDate}_${toDate}_${username}`;
   const cachedData = await getCache(key);
-  if(cachedData.status == 200){
+  if (cachedData.status == 200) {
     return cachedData.value;
   }
 
-  const response = await graphql(CONTRIBUTION_QUERY_DATE_TIME, {
+  const response = await graphqlClient(CONTRIBUTION_QUERY_DATE_TIME, {
     ...variables,
-    headers: {
-      authorization: `token ${token}`,
-    },
   });
 
   const data = response.user.contributionsCollection.contributionCalendar.weeks;
   const today = new Date();
   const year = today.getFullYear();
-  const toDateYear = toDate.split('-')[0]; // date format example: 24-12-31
+  const toDateYear = toDate.split("-")[0]; // date format example: 24-12-31
   /* expiration is 7 days for current year, infinity for previous years */
-  const expiration = toDateYear >= year%100 ? today.setDate(today.getDate() + 7) : Infinity;
+  const expiration =
+    toDateYear >= year % 100 ? today.setDate(today.getDate() + 7) : Infinity;
 
-  saveCache(key, data, expiration)
+  saveCache(key, data, expiration);
 
   return data;
 };
 
-const parseContributionData = (weeks) => {
-  const contributions = [];
-  weeks.forEach((week) => {
-    week.contributionDays.forEach((day) => {
-      contributions.push({ ...day });
-    });
-  });
-  return contributions;
-};
-
-
-
-const fetchAllContributionData = async (username, token, startYear) => {
+const fetchAllContributionData = async (username, startYear) => {
   const currentYear = new Date().getFullYear();
   let allContributions = [];
 
@@ -53,7 +57,6 @@ const fetchAllContributionData = async (username, token, startYear) => {
     const toDate = `${year}-12-31T23:59:59Z`;
     const weeks = await fetchContributionData(
       username,
-      token,
       fromDate,
       toDate
     );
@@ -64,21 +67,91 @@ const fetchAllContributionData = async (username, token, startYear) => {
   return allContributions;
 };
 
+async function getFirstCommit(username) {
+  const cachedData = await getCache(FIRST_COMMIT_KEY);
+  if (cachedData.status == 200) {
+    return cachedData.value;
+  }
+  try {
+    const variables = { username };
 
-const getLongestStreak = async (username, startYear = 2012, token) => {
+    const response = await graphqlClient(FIRST_COMMIT_QUERY, {
+      ...variables,
+    });
+
+    const data = {
+      ...response,
+    };
+
+    if (!data?.user?.repositories?.nodes.length) {
+      console.log(`No repositories found for user: ${username}`);
+      return null;
+    }
+
+    const oldestRepo = data.user.repositories.nodes.find(
+      (repo) => repo.defaultBranchRef?.target?.history?.edges.length
+    );
+
+    if (!oldestRepo) {
+      console.log(`No commits found for user: ${username}`);
+      return null;
+    }
+
+    const firstCommit =
+      oldestRepo.defaultBranchRef.target.history.edges[0].node;
+    const toReturn = {
+      repository: oldestRepo.name,
+      date: firstCommit.committedDate,
+      message: firstCommit.message,
+      url: firstCommit.url,
+    };
+    await saveCache(FIRST_COMMIT_KEY, toReturn, Infinity);
+    return toReturn;
+  } catch (error) {
+    console.error(`Error fetching first commit: ${error.message}`);
+    return null;
+  }
+}
+
+const getLongestStreak = async (username, startYear = 2012) => {
   try {
     const contributions = await fetchAllContributionData(
       username,
-      token,
       startYear
     );
-    const streaks = calculateStreaks(contributions);
-    const topStreak = streaks[0];
-    return topStreak;
+    return calculateStreaks(contributions);
   } catch (error) {
     console.error(error.message);
     return error;
   }
 };
 
-export { getLongestStreak };
+async function getAllTimeContributions(username, fromDate, currentDate = new Date()) {
+  try {
+    const today = new Date();
+    today.setHours(today.getHours() + 24);
+    const cachedData = await getCache(ALL_TIME_CONTRIBUTION_KEY);
+    if (cachedData.status == 200) {
+      return cachedData.value;
+    }
+    const date = new Date(fromDate);
+    const year = date.getFullYear();
+    const data = getLongestStreak(username, year);
+    saveCache(ALL_TIME_CONTRIBUTION_KEY, data, today);
+    return data;
+  } catch (error) {
+    console.error(`Error fetching contributions: ${error.message}`);
+    return null;
+  }
+}
+
+function calculateStreaks(contributionDays) {
+  const currentStreaks = getStreak(contributionDays);
+  return {
+    currentStreak: currentStreaks.longestStreak,
+    totalContributions: currentStreaks.total,
+    currentStreakRange: currentStreaks.range,
+  };
+}
+
+export { getLongestStreak, getContributions, getFirstCommit, getAllTimeContributions, calculateStreaks };

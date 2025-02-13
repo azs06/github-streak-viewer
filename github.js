@@ -13,7 +13,6 @@ import {
 import {
   calculateStreaks,
   parseContributionData,
-  getStreak,
 } from "./helpers.js";
 import { graphqlClient } from "./graphql-client.js";
 
@@ -90,7 +89,7 @@ async function getFirstCommit(username) {
 
     if (!data?.user?.repositories?.nodes.length) {
       const msg = `No repositories found for user: ${username}`;
-      console.log(msg);
+      console.error(msg);
       return Promise.reject(msg);
     }
 
@@ -100,7 +99,7 @@ async function getFirstCommit(username) {
 
     if (!oldestRepo) {
       const msg = `No commits found for user: ${username}`;
-      console.log(msg);
+      console.error(msg);
       return Promise.reject(msg);
     }
 

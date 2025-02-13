@@ -15,35 +15,37 @@ app.get("/streak/:username", async (req, res) => {
     const firstCommitData = await getFirstCommit(username);
     const firstCommitDate = firstCommitData?.date;
     const currentDate = new Date().toISOString();
-    const longestStreakData = await getAllTimeContributions(
+    const streakData = await getAllTimeContributions(
       username,
       firstCommitDate,
       currentDate
     );
 
-   //return res.json(longestStreakData);
+    //return res.json(longestStreakData);
     const formattedDate = formatDate(firstCommitDate, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
 
-    const { longestStreak, currentStreak, total } = longestStreakData;
-    const currentStreakRange = currentStreak
-      ? `${currentStreak.start} - ${currentStreak.end}`
-      : "";
-    const longestStreakRange = longestStreak
-      ? `${longestStreak.start} - ${longestStreak.end}`
-      : "";
+    const getRange = (streakObject) => {
+      const { start, end } = streakObject;
+      if (!start || !end) return "";
+      return `${formatDate(start)} - ${formatDate(end)}`;
+    };
+
+    const { longestStreak, currentStreak, total } = streakData;
+    const currentStreakRange = currentStreak ? getRange(currentStreak) : "";
+    const longestStreakRange = longestStreak ? getRange(longestStreak) : "";
     const longestStreakLength = longestStreak?.length;
     const currentStreakLength = currentStreak?.length;
 
     const svg = getSvg({
-      currentStreakLength,
+      currentStreak: currentStreakLength,
       currentStreakRange,
-      longestStreakLength,
+      longestStreak: longestStreakLength,
       longestStreakRange,
-      total,
+      totalContributions: total,
       firstCommitDate: formattedDate,
     });
 

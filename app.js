@@ -1,5 +1,4 @@
 import express from "express";
-//import fetch from "node-fetch";
 import { graphql } from "@octokit/graphql";
 import { FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY } from "./graphql.js";
 import { formatDate, getStreak } from "./helpers.js";

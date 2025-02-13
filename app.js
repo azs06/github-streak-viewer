@@ -124,6 +124,7 @@ app.get("/streak/:username", async (req, res) => {
       username,
       firstCommitData?.date
     );
+
     const contributionDays =
       data.user.contributionsCollection.contributionCalendar.weeks.flatMap(
         (week) => week.contributionDays

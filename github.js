@@ -1,46 +1,9 @@
 import { graphql } from "@octokit/graphql";
 import { CONTRIBUTION_QUERY_DATE_TIME } from "./graphql.js";
 import { saveCache, getCache } from "./cache.js";
-
 const CONTRIBUTION_DATA = "contribution_data";
 
-//import { calculateStreaks } from "./helpers.js";
-
-const calculateStreaks = (contributions) => {
-  const streaks = [];
-  let currentStreak = 0;
-  let streakStartDate = null;
-  let streakEndDate = null;
-
-  contributions.forEach(({ date, count }) => {
-    if (count > 0) {
-      if (currentStreak === 0) {
-        streakStartDate = date;
-      }
-      currentStreak += 1;
-      streakEndDate = date;
-    } else {
-      if (currentStreak > 0) {
-        streaks.push({
-          start: streakStartDate,
-          end: streakEndDate,
-          length: currentStreak,
-        });
-      }
-      currentStreak = 0;
-    }
-  });
-
-  if (currentStreak > 0) {
-    streaks.push({
-      start: streakStartDate,
-      end: streakEndDate,
-      length: currentStreak,
-    });
-  }
-
-  return streaks.sort((a, b) => b.length - a.length);
-}; 
+import { calculateStreaks } from "./helpers.js";
 
 const fetchContributionData = async (username, token, fromDate, toDate) => {
   const variables = { username, fromDate, toDate };
@@ -73,7 +36,7 @@ const parseContributionData = (weeks) => {
   const contributions = [];
   weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
-      contributions.push({ date: day.date, count: day.contributionCount, day });
+      contributions.push({ ...day });
     });
   });
   return contributions;

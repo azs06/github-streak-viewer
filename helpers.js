@@ -8,7 +8,13 @@ const formatDate = (date, options = {}) => {
 };
 
 const getLongestStreakRange = (streakRange) => {
-  if (!streakRange && typeof streakRange !== "object") return "";
+  console.log({ streakRange });
+  if (
+    (!streakRange && typeof streakRange !== "object") ||
+    Object.keys(streakRange).length == 0
+  ) {
+    return "";
+  }
   const longestRangeKeys = Object.keys(streakRange);
   const longestStreakRangeKey = longestRangeKeys.reduce(
     (a, b) => Math.max(a, b),
@@ -78,12 +84,15 @@ const getStreak = (contributions = []) => {
   return {
     total: total,
     range: longestStreakRange,
-    longestStreak: streaks.length ? Math.max(...streaks.map(s => s.length)) : 0,
+    longestStreak: streaks.length
+      ? Math.max(...streaks.map((s) => s.length))
+      : 0,
     streaks,
   };
 };
 
 const calculateStreaks = (contributions) => {
+  console.log({ contributions });
   const { streaks } = getStreak(contributions);
 
   return streaks.sort((a, b) => b.length - a.length);

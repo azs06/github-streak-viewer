@@ -4,8 +4,17 @@ import {
   CONTRIBUTION_QUERY,
 } from "./graphql.js";
 import { saveCache, getCache } from "./cache.js";
-import { CONTRIBUTION_DATA } from "./constant.js";
-import { calculateStreaks, parseContributionData, getStreak } from "./helpers.js";
+import {
+  CONTRIBUTION_DATA,
+  CONTRIBUTION_KEY,
+  FIRST_COMMIT_KEY,
+  ALL_TIME_CONTRIBUTION_KEY,
+} from "./constant.js";
+import {
+  calculateStreaks,
+  parseContributionData,
+  getStreak,
+} from "./helpers.js";
 import { graphqlClient } from "./graphql-client.js";
 
 async function getContributions(username) {
@@ -55,11 +64,7 @@ const fetchAllContributionData = async (username, startYear) => {
   for (let year = startYear; year <= currentYear; year++) {
     const fromDate = `${year}-01-01T00:00:00Z`;
     const toDate = `${year}-12-31T23:59:59Z`;
-    const weeks = await fetchContributionData(
-      username,
-      fromDate,
-      toDate
-    );
+    const weeks = await fetchContributionData(username, fromDate, toDate);
     const contributions = parseContributionData(weeks);
     allContributions = allContributions.concat(contributions);
   }
@@ -84,8 +89,9 @@ async function getFirstCommit(username) {
     };
 
     if (!data?.user?.repositories?.nodes.length) {
-      console.log(`No repositories found for user: ${username}`);
-      return null;
+      const msg = `No repositories found for user: ${username}`;
+      console.log(msg);
+      return Promise.reject(msg);
     }
 
     const oldestRepo = data.user.repositories.nodes.find(
@@ -93,8 +99,9 @@ async function getFirstCommit(username) {
     );
 
     if (!oldestRepo) {
-      console.log(`No commits found for user: ${username}`);
-      return null;
+      const msg = `No commits found for user: ${username}`;
+      console.log(msg);
+      return Promise.reject(msg);
     }
 
     const firstCommit =
@@ -113,20 +120,34 @@ async function getFirstCommit(username) {
   }
 }
 
-const getLongestStreak = async (username, startYear = 2012) => {
+const getLongestStreak = async (
+  username,
+  startYear = 2012,
+  currentDate = new Date()
+) => {
   try {
-    const contributions = await fetchAllContributionData(
-      username,
-      startYear
+    const contributions = await fetchAllContributionData(username, startYear);
+    const data = calculateStreaks(contributions);
+    const currentStreak = data.streaks.find(
+      (streak) =>
+        new Date(streak.end).toDateString() ==
+        new Date(currentDate).toDateString()
     );
-    return calculateStreaks(contributions);
+    return {
+      ...data,
+      currentStreak
+    }
   } catch (error) {
     console.error(error.message);
     return error;
   }
 };
 
-async function getAllTimeContributions(username, fromDate, currentDate = new Date()) {
+async function getAllTimeContributions(
+  username,
+  fromDate,
+  currentDate = new Date()
+) {
   try {
     const today = new Date();
     today.setHours(today.getHours() + 24);
@@ -136,7 +157,7 @@ async function getAllTimeContributions(username, fromDate, currentDate = new Dat
     }
     const date = new Date(fromDate);
     const year = date.getFullYear();
-    const data = getLongestStreak(username, year);
+    const data = getLongestStreak(username, year, currentDate);
     saveCache(ALL_TIME_CONTRIBUTION_KEY, data, today);
     return data;
   } catch (error) {
@@ -145,13 +166,10 @@ async function getAllTimeContributions(username, fromDate, currentDate = new Dat
   }
 }
 
-function calculateStreaks(contributionDays) {
-  const currentStreaks = getStreak(contributionDays);
-  return {
-    currentStreak: currentStreaks.longestStreak,
-    totalContributions: currentStreaks.total,
-    currentStreakRange: currentStreaks.range,
-  };
-}
-
-export { getLongestStreak, getContributions, getFirstCommit, getAllTimeContributions, calculateStreaks };
+export {
+  getLongestStreak,
+  getContributions,
+  getFirstCommit,
+  getAllTimeContributions,
+  calculateStreaks,
+};

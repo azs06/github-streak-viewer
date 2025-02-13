@@ -26,25 +26,29 @@ function calculateStreaks(contributionDays) {
 app.get("/streak/:username", async (req, res) => {
   try {
     const { username } = req.params;
-    const firstCommitData = await getFirstCommit(username);
-    //const contributionData = await getContributions(username);
+    //const firstCommitData = await getFirstCommit(username);
+    const firstCommitDate = "2012-11-05T11:32:22Z";
     const currentDate = new Date().toISOString();
     const longestStreakData = await getAllTimeContributions(
       username,
-      firstCommitData?.date,
+      firstCommitDate,
       currentDate
     );
 
-/*     const contributionDays =
+    //const contributionData = await getContributions(username);
+
+    return res.json(longestStreakData);
+
+    /*     const contributionDays =
       contributionData.user.contributionsCollection.contributionCalendar.weeks.flatMap(
         (week) => week.contributionDays
       ); */
 
-/*     const { currentStreak, totalContributions, currentStreakRange } =
+    /*     const { currentStreak, totalContributions, currentStreakRange } =
       calculateStreaks(contributionDays); */
-    const currentStreak = 0;  
+    const currentStreak = 0;
     const totalContributions = 0;
-    const currentStreakRange = '';
+    const currentStreakRange = "";
     const { date } = firstCommitData;
     const formattedDate = formatDate(date, {
       year: "numeric",

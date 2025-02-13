@@ -132,9 +132,12 @@ const getStreakData = async (
         new Date(streak.end).toDateString() ==
         new Date(currentDate).toDateString()
     );
+    // already sorted
+    const longestStreak = data.streaks[0];
     return {
       ...data,
-      currentStreak
+      currentStreak,
+      longestStreak
     }
   } catch (error) {
     console.error(error.message);

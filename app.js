@@ -1,17 +1,13 @@
 import express from "express";
 import { formatDate } from "./helpers.js";
 import { getSvg } from "./svg.js";
-import {
-  getFirstCommit,
-  getAllTimeContributions,
-} from "./github.js";
+import { getFirstCommit, getAllTimeContributions } from "./github.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
-
 
 app.get("/streak/:username", async (req, res) => {
   try {
@@ -25,28 +21,29 @@ app.get("/streak/:username", async (req, res) => {
       currentDate
     );
 
-    return res.json(longestStreakData);
-
-    const currentStreak = 0;
-    const totalContributions = 0;
-    const currentStreakRange = "";
+   //return res.json(longestStreakData);
     const formattedDate = formatDate(firstCommitDate, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
 
-    const longestStreak = longestStreakData ? longestStreakData.length : 0;
-    const longestStreakRange = longestStreakData
-      ? `${longestStreakData.start} - ${longestStreakData.end}`
+    const { longestStreak, currentStreak, total } = longestStreakData;
+    const currentStreakRange = currentStreak
+      ? `${currentStreak.start} - ${currentStreak.end}`
       : "";
+    const longestStreakRange = longestStreak
+      ? `${longestStreak.start} - ${longestStreak.end}`
+      : "";
+    const longestStreakLength = longestStreak?.length;
+    const currentStreakLength = currentStreak?.length;
 
     const svg = getSvg({
-      currentStreak,
+      currentStreakLength,
       currentStreakRange,
-      longestStreak,
+      longestStreakLength,
       longestStreakRange,
-      totalContributions,
+      total,
       firstCommitDate: formattedDate,
     });
 

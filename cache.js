@@ -1,18 +1,19 @@
-const cache = new Map();
+import { Cacheable } from "cacheable";
+//const cache = new Map();
+const cache = new Cacheable({ ttl: "1d" });
 
 const saveCache = async (key, data, expiration) => {
-  await cache.set(key, { data, expiration });
+  await cache.set(
+    key,
+    data,
+    expiration == Infinity
+      ? 0
+      : (new Date(expiration).getTime() - Date.now()) / 1000
+  );
 };
 
-const getCache = async (key, date) => {
-  const cachedData = cache.get(key);
-  const isExpired = (cacheExpiration, currentDate) => {
-    if (cacheExpiration == Infinity) return false;
-    return (
-      new Date(cacheExpiration).getTime() <= new Date(currentDate).getTime()
-    );
-  };
-  //let response = null;
+const getCache = async (key) => {
+  const cachedData = await cache.get(key);
   if (!cachedData) {
     return await Promise.resolve({
       status: 404,
@@ -20,22 +21,15 @@ const getCache = async (key, date) => {
       value: null,
     });
   }
-  if (isExpired(cachedData.expiration, date)) {
-    cache.delete(key);
-    return await Promise.resolve({
-      status: 410,
-      msg: "Cache expired",
-      value: null,
-    });
-  }
   return await Promise.resolve({
     status: 200,
     msg: "Success",
-    value: cachedData.data,
+    value: cachedData,
   });
 };
 
-export {
-    saveCache,
-    getCache
-}
+const deleteCache = async (key) => {
+  cache.del(key);
+};
+
+export { saveCache, getCache, deleteCache };

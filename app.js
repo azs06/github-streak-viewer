@@ -15,7 +15,6 @@ app.get("/streak/:username", async (req, res) => {
     const firstCommitData = await getFirstCommit(username);
     const firstCommitDate = firstCommitData?.date;
     const currentDate = new Date().toISOString();
-    /* we are checking there is a gap for contributions for a day */
     const streakData = await getAllTimeContributions(
       username,
       firstCommitDate,

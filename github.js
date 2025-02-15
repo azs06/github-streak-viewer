@@ -10,10 +10,7 @@ import {
   FIRST_COMMIT_KEY,
   ALL_TIME_CONTRIBUTION_KEY,
 } from "./constant.js";
-import {
-  calculateStreaks,
-  parseContributionData,
-} from "./helpers.js";
+import { calculateStreaks, parseContributionData } from "./helpers.js";
 import { graphqlClient } from "./graphql-client.js";
 
 async function getContributions(username) {
@@ -127,18 +124,28 @@ const getStreakData = async (
   try {
     const contributions = await fetchAllContributionData(username, startYear);
     const data = calculateStreaks(contributions);
+    // find streak end matching current date or previous date
+    const findStreak = (streakEnd, currentDate) => {
+      function isDateValid(dateStr) {
+        return !isNaN(new Date(dateStr));
+      }
+      if(!isDateValid(streakEnd) || !isDateValid(currentDate)) return;
+      const previousDay = new Date().setDate(currentDate.getDate() - 1);
+      const streakEndDateString = new Date(streakEnd).toDateString();
+      return (
+        streakEndDateString == currentDate.toDateString() ||
+        streakEndDateString == previousDay.toDateString()
+      );
+    };
     const currentStreak = data.streaks.find(
-      (streak) =>
-        new Date(streak.end).toDateString() ==
-        new Date(currentDate).toDateString()
-    );
+      (streak) => findStreak(streak.end, currentDate));
     // already sorted
     const longestStreak = data.streaks[0];
     return {
       ...data,
       currentStreak,
-      longestStreak
-    }
+      longestStreak,
+    };
   } catch (error) {
     console.error(error.message);
     return error;

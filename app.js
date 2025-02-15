@@ -15,6 +15,7 @@ app.get("/streak/:username", async (req, res) => {
     const firstCommitData = await getFirstCommit(username);
     const firstCommitDate = firstCommitData?.date;
     const currentDate = new Date().toISOString();
+    /* we are checking there is a gap for contributions for a day */
     const streakData = await getAllTimeContributions(
       username,
       firstCommitDate,
@@ -37,8 +38,8 @@ app.get("/streak/:username", async (req, res) => {
     const { longestStreak, currentStreak, total } = streakData;
     const currentStreakRange = currentStreak ? getRange(currentStreak) : "";
     const longestStreakRange = longestStreak ? getRange(longestStreak) : "";
-    const longestStreakLength = longestStreak?.length;
-    const currentStreakLength = currentStreak?.length;
+    const longestStreakLength = longestStreak?.length || 0;
+    const currentStreakLength = currentStreak?.length || 0;
 
     const svg = getSvg({
       currentStreak: currentStreakLength,

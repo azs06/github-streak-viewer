@@ -8,11 +8,11 @@ const getSvg = ({currentStreak, currentStreakRange, longestStreak, longestStreak
       </style>
       <rect width="530" height="190" fill="#0d1117" rx="4.5"/>
       <text x="25" y="30" class="title">GitHub Contribution Streak</text>
-      <g transform="translate(25, 60)">
+      ${currentStreak && `<g transform="translate(25, 60)">
         <text class="stat">Current Streak</text>
         <text class="number" y="40">${currentStreak} days</text>
         <text class="stat" y="70">${currentStreakRange}</text>
-      </g>
+      </g>`}
       <g transform="translate(200, 60)">
         <text class="stat">Longest Streak</text>
         <text class="number" y="40">${longestStreak} days</text>

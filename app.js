@@ -21,12 +21,7 @@ app.get("/streak/:username", async (req, res) => {
       currentDate
     );
 
-    //return res.json(longestStreakData);
-    const formattedDate = formatDate(firstCommitDate, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    const formattedDate = formatDate(firstCommitDate);
 
     const getRange = (streakObject) => {
       const { start, end } = streakObject;

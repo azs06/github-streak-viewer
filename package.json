@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@cacheable/node-cache": "^1.5.2",
+    "@date-fns/tz": "^1.2.0",
     "@octokit/graphql": "^8.2.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",

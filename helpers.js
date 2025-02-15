@@ -143,4 +143,11 @@ const parseContributionData = (weeks) => {
   return contributions;
 };
 
-export { formatDate, getStreak, calculateLongestStreak, calculateStreaks, parseContributionData };
+
+const getRange = (streakObject) => {
+  const { start, end } = streakObject;
+  if (!start || !end) return "";
+  return `${formatDate(start)} - ${formatDate(end)}`;
+};
+
+export { formatDate, getStreak, calculateLongestStreak, calculateStreaks, parseContributionData, getRange };

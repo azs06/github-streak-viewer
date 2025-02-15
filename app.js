@@ -1,5 +1,5 @@
 import express from "express";
-import { formatDate } from "./helpers.js";
+import { formatDate, getRange } from "./helpers.js";
 import { getSvg } from "./svg.js";
 import { getFirstCommit, getAllTimeContributions } from "./github.js";
 import dotenv from "dotenv";
@@ -9,12 +9,13 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3001;
 
+
 app.get("/streak/:username", async (req, res) => {
   try {
     const { username } = req.params;
     const firstCommitData = await getFirstCommit(username);
     const firstCommitDate = firstCommitData?.date;
-    const currentDate = new Date().toISOString();
+    const currentDate = new Date();
     const streakData = await getAllTimeContributions(
       username,
       firstCommitDate,
@@ -22,12 +23,6 @@ app.get("/streak/:username", async (req, res) => {
     );
 
     const formattedDate = formatDate(firstCommitDate);
-
-    const getRange = (streakObject) => {
-      const { start, end } = streakObject;
-      if (!start || !end) return "";
-      return `${formatDate(start)} - ${formatDate(end)}`;
-    };
 
     const { longestStreak, currentStreak, total } = streakData;
     const currentStreakRange = currentStreak ? getRange(currentStreak) : "";

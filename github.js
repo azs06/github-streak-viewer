@@ -130,7 +130,8 @@ const getStreakData = async (
         return !isNaN(new Date(dateStr));
       }
       if(!isDateValid(streakEnd) || !isDateValid(currentDate)) return;
-      const previousDay = new Date().setDate(new Date(currentDate).getDate() - 1);
+      const previousDay = new Date();
+      previousDay.setDate(new Date(currentDate).getDate() - 1);
       const streakEndDateString = new Date(streakEnd).toDateString();
       return (
         streakEndDateString == new Date(currentDate).toDateString() ||

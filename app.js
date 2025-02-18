@@ -2,13 +2,25 @@ import express from "express";
 import { formatDate, getRange } from "./helpers.js";
 import { getSvg } from "./svg.js";
 import { getFirstCommit, getAllTimeContributions } from "./github.js";
+import helmet from "helmet";
+
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const app = express();
+app.use(helmet());
+app.disable('x-powered-by')
 const port = process.env.PORT || 3001;
 
+
+app.use((req, res, next) => {
+  res.status(404).send("404 not found")
+})
+
+app.use((err, req, res, next) => {
+  res.status(500).send('Server error')
+})
 
 app.get("/streak/:username", async (req, res) => {
   try {

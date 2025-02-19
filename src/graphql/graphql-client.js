@@ -1,9 +1,5 @@
 import { graphql } from "@octokit/graphql";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
+import { GITHUB_TOKEN } from "../config/config";
 
 export const graphqlClient = graphql.defaults({
   headers: {

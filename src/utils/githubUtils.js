@@ -1,186 +1,86 @@
-import {
-  CONTRIBUTION_QUERY_DATE_TIME,
-  FIRST_COMMIT_QUERY,
-  CONTRIBUTION_QUERY,
-} from "../graphql/graphql.js";
-import { saveCache, getCache } from "../services/cacheService.js";
-import {
-  CONTRIBUTION_DATA,
-  CONTRIBUTION_KEY,
-  FIRST_COMMIT_KEY,
-  ALL_TIME_CONTRIBUTION_KEY,
-} from "../constants";
-import { calculateStreaks, parseContributionData } from "./utils.js";
-import { graphqlClient } from "../graphql/graphql-client.js";
-
-async function getContributions(username) {
-  const cachedData = await getCache(CONTRIBUTION_KEY);
-  if (cachedData.status == 200) {
-    return cachedData.value;
-  }
-  const expiration = new Date();
-  expiration.setHours(expiration.getHours() + 24); // 24 hour
-  const variables = { username };
-  const response = await graphqlClient(CONTRIBUTION_QUERY, {
-    ...variables,
-  });
-  await saveCache(CONTRIBUTION_KEY, response, expiration);
-  return response;
-}
-
-const fetchContributionData = async (username, fromDate, toDate) => {
-  const variables = { username, fromDate, toDate };
-  const key = `${CONTRIBUTION_DATA}_${fromDate}_${toDate}_${username}`;
-  const cachedData = await getCache(key);
-  if (cachedData.status == 200) {
-    return cachedData.value;
-  }
-
-  const response = await graphqlClient(CONTRIBUTION_QUERY_DATE_TIME, {
-    ...variables,
-  });
-
-  const data = response.user.contributionsCollection.contributionCalendar.weeks;
-  const today = new Date();
-  const year = today.getFullYear();
-  const toDateYear = toDate.split("-")[0]; // date format example: 24-12-31
-  /* expiration is 7 days for current year, infinity for previous years */
-  const expiration =
-    toDateYear >= year % 100 ? today.setDate(today.getDate() + 7) : Infinity;
-
-  saveCache(key, data, expiration);
-
-  return data;
-};
-
-const fetchAllContributionData = async (username, startYear) => {
-  const currentYear = new Date().getFullYear();
-  let allContributions = [];
-
-  for (let year = startYear; year <= currentYear; year++) {
-    const fromDate = `${year}-01-01T00:00:00Z`;
-    const toDate = `${year}-12-31T23:59:59Z`;
-    const weeks = await fetchContributionData(username, fromDate, toDate);
-    const contributions = parseContributionData(weeks);
-    allContributions = allContributions.concat(contributions);
-  }
-
-  return allContributions;
-};
-
-async function getFirstCommit(username) {
-  const cachedData = await getCache(FIRST_COMMIT_KEY);
-  if (cachedData.status == 200) {
-    return cachedData.value;
-  }
-  try {
-    const variables = { username };
-
-    const response = await graphqlClient(FIRST_COMMIT_QUERY, {
-      ...variables,
-    });
-
-    const data = {
-      ...response,
-    };
-
-    if (!data?.user?.repositories?.nodes.length) {
-      const msg = `No repositories found for user: ${username}`;
-      console.error(msg);
-      return Promise.reject(msg);
+const getLongestStreakRange = (streakRange) => {
+    if (
+      !streakRange ||
+      typeof streakRange !== "object" ||
+      Object.keys(streakRange).length === 0
+    ) {
+      return "";
     }
-
-    const oldestRepo = data.user.repositories.nodes.find(
-      (repo) => repo.defaultBranchRef?.target?.history?.edges.length
-    );
-
-    if (!oldestRepo) {
-      const msg = `No commits found for user: ${username}`;
-      console.error(msg);
-      return Promise.reject(msg);
+    const longestStreakLength = Math.max(...Object.keys(streakRange).map(Number));
+    const range = streakRange[longestStreakLength];
+    return range ? `${range.start} - ${range.end}` : "";
+  };
+  
+  const getRange = (streakObject) => {
+    if (!streakObject?.start || !streakObject?.end) return "";
+    return `${formatDate(streakObject.start)} - ${formatDate(streakObject.end)}`;
+  };
+  
+  const parseContributionData = (weeks) =>
+    weeks.flatMap((week) => week.contributionDays);
+  
+  const getStreak = (contributions = []) => {
+    if (!Array.isArray(contributions) || contributions.length === 0) {
+      return { total: 0, range: "", longestStreak: 0, streaks: [] };
     }
-
-    const firstCommit =
-      oldestRepo.defaultBranchRef.target.history.edges[0].node;
-    const toReturn = {
-      repository: oldestRepo.name,
-      date: firstCommit.committedDate,
-      message: firstCommit.message,
-      url: firstCommit.url,
-    };
-    await saveCache(FIRST_COMMIT_KEY, toReturn, Infinity);
-    return toReturn;
-  } catch (error) {
-    console.error(`Error fetching first commit: ${error.message}`);
-    return null;
-  }
-}
-
-const getStreakData = async (
-  username,
-  startYear = 2012,
-  currentDate = new Date()
-) => {
-  try {
-    const contributions = await fetchAllContributionData(username, startYear);
-    const data = calculateStreaks(contributions);
-    // find streak end matching current date or previous date
-    const findStreak = (streakEnd, currentDate) => {
-      function isDateValid(dateStr) {
-        return !isNaN(new Date(dateStr));
+  
+    let streaks = [];
+    let streakRange = {};
+    let streakStart = null;
+    let streakEnd = null;
+    let currentStreak = 0;
+    let total = 0;
+  
+    const addStreak = () => {
+      if (currentStreak > 0) {
+        streaks.push({
+          start: streakStart,
+          end: streakEnd,
+          length: currentStreak,
+        });
+        streakRange[currentStreak] = {
+          start: formatDate(streakStart),
+          end: formatDate(streakEnd),
+        };
       }
-      if (!isDateValid(streakEnd) || !isDateValid(currentDate)) return;
-      const previousDay = new Date();
-      previousDay.setDate(new Date(currentDate).getDate() - 1);
-      const streakEndDateString = new Date(streakEnd).toDateString();
-      return (
-        streakEndDateString == new Date(currentDate).toDateString() ||
-        streakEndDateString == previousDay.toDateString()
-      );
     };
-    const currentStreak = data.streaks.find((streak) =>
-      findStreak(streak.end, currentDate)
-    );
-    // already sorted
-    const longestStreak = data.streaks[0];
+  
+    contributions.forEach(({ contributionCount, date }) => {
+      if (contributionCount > 0) {
+        if (currentStreak === 0) streakStart = date;
+        currentStreak++;
+        streakEnd = date;
+      } else {
+        addStreak();
+        currentStreak = 0;
+      }
+      total += contributionCount;
+    });
+  
+    addStreak(); // Handle last streak
+  
     return {
-      ...data,
-      currentStreak,
-      longestStreak,
+      total,
+      range: getLongestStreakRange(streakRange),
+      longestStreak: streaks.length
+        ? Math.max(...streaks.map((s) => s.length))
+        : 0,
+      streaks,
     };
-  } catch (error) {
-    console.error(error.message);
-    return error;
-  }
-};
-
-async function getAllTimeContributions(
-  username,
-  fromDate,
-  currentDate = new Date()
-) {
-  try {
-    const today = new Date();
-    today.setHours(today.getHours() + 24);
-    const cachedData = await getCache(ALL_TIME_CONTRIBUTION_KEY);
-    if (cachedData.status == 200) {
-      return cachedData.value;
-    }
-    const date = new Date(fromDate);
-    const year = date.getFullYear();
-    const data = getStreakData(username, year, currentDate);
-    saveCache(ALL_TIME_CONTRIBUTION_KEY, data, today);
-    return data;
-  } catch (error) {
-    console.error(`Error fetching contributions: ${error.message}`);
-    return null;
-  }
-}
-
-export {
-  getStreakData,
-  getContributions,
-  getFirstCommit,
-  getAllTimeContributions,
-  calculateStreaks,
-};
+  };
+  
+  const calculateStreaks = (contributions) => {
+    const streakData = getStreak(contributions);
+    return {
+      ...streakData,
+      streaks: streakData.streaks.sort((a, b) => b.length - a.length),
+    };
+  };
+  
+  export {
+    getStreak,
+    calculateStreaks,
+    parseContributionData,
+    getRange,
+  };
+  

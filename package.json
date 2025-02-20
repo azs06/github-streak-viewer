@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node __/app/app.js",
-    "dev": "node --inspect --watch-path=./ .__app/app.js"
+    "start": "node ./src/server.js",
+    "dev": "node --inspect --watch-path=./ ./src/server.js"
   },
   "author": "",
   "license": "ISC",

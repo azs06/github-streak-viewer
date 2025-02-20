@@ -1,6 +1,6 @@
 import express from "express";
 import helmet from "helmet";
-import { streakRouter } from "./api/controllers/streakController.js";
+import { streakRouter } from "./api/routes/streakRoutes.js";
 import { errorHandler } from "./api/middleware/errorHandler.js";
 
 const app = express();

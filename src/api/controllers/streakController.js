@@ -1,10 +1,10 @@
 import {
   getAllTimeContributions,
   getFirstCommit,
-} from "../../services/githubService";
-import { formatDate } from "../../utils/dateUtils";
-import { getSvg } from "../../utils/svgUtils";
-import { getRange } from "../../utils/githubUtils";
+} from "../../services/githubService.js";
+import { formatDate } from "../../utils/dateUtils.js";
+import { getSvg } from "../../utils/svgUtils.js";
+import { getRange } from "../../utils/githubUtils.js";
 
 async function streakController(req, res) {
   try {

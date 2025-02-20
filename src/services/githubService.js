@@ -1,11 +1,11 @@
-import { getCache, saveCache } from "./cacheService";
-import { ALL_TIME_CONTRIBUTION_KEY, FIRST_COMMIT_KEY } from "../constants";
+import { getCache, saveCache } from "./cacheService.js";
+import { ALL_TIME_CONTRIBUTION_KEY, FIRST_COMMIT_KEY } from "../constants/index.js";
 import {
   CONTRIBUTION_QUERY_DATE_TIME,
   FIRST_COMMIT_QUERY,
   CONTRIBUTION_QUERY,
-} from "../graphql/graphql";
-import { graphqlClient } from "../graphql/graphql-client";
+} from "../graphql/graphql.js";
+import { graphqlClient } from "../graphql/graphql-client.js";
 
 async function getAllTimeContributions(
   username,

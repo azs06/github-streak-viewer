@@ -1,11 +1,31 @@
 import { getCache, saveCache } from "./cacheService.js";
-import { ALL_TIME_CONTRIBUTION_KEY, FIRST_COMMIT_KEY } from "../constants/index.js";
+import {
+  ALL_TIME_CONTRIBUTION_KEY,
+  FIRST_COMMIT_KEY,
+  CONTRIBUTION_DATA,
+} from "../constants/index.js";
 import {
   CONTRIBUTION_QUERY_DATE_TIME,
   FIRST_COMMIT_QUERY,
   CONTRIBUTION_QUERY,
 } from "../graphql/graphql.js";
 import { graphqlClient } from "../graphql/graphql-client.js";
+import { parseContributionData, calculateStreaks } from "../utils/githubUtils.js";
+
+const fetchAllContributionData = async (username, startYear) => {
+  const currentYear = new Date().getFullYear();
+  let allContributions = [];
+
+  for (let year = startYear; year <= currentYear; year++) {
+    const fromDate = `${year}-01-01T00:00:00Z`;
+    const toDate = `${year}-12-31T23:59:59Z`;
+    const weeks = await fetchContributionData(username, fromDate, toDate);
+    const contributions = parseContributionData(weeks);
+    allContributions = allContributions.concat(contributions);
+  }
+
+  return allContributions;
+};
 
 async function getAllTimeContributions(
   username,

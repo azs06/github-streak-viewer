@@ -8,6 +8,7 @@ import {
   CONTRIBUTION_QUERY_DATE_TIME,
   FIRST_COMMIT_QUERY,
   CONTRIBUTION_QUERY,
+  LAST_COMMIT_QUERY,
 } from "../graphql/graphql.js";
 import { graphqlClient } from "../graphql/graphql-client.js";
 import { parseContributionData, calculateStreaks } from "../utils/githubUtils.js";
@@ -145,6 +146,10 @@ const getStreakData = async (
 ) => {
   try {
     const contributions = await fetchAllContributionData(username, startYear);
+    let latestContribution;
+    if(new Date(startYear).getFullYear() == new Date(currentDate).getFullYear()){
+      latestContribution = {...contributions}
+    }
     const data = calculateStreaks(contributions);
     // find streak end matching current date or previous date
     const findStreak = (streakEnd, currentDate) => {
@@ -169,6 +174,7 @@ const getStreakData = async (
       ...data,
       currentStreak,
       longestStreak,
+      latestContribution
     };
   } catch (error) {
     console.error(error.message);
@@ -176,10 +182,29 @@ const getStreakData = async (
   }
 };
 
+async function getLastCommit(username){
+  try{
+    const variables = { username };
+
+    const response = await graphqlClient(LAST_COMMIT_QUERY, {
+      ...variables,
+    });
+
+    const data = {
+      ...response,
+    };
+    return data;
+  }catch(error){
+    console.log(error.message);
+    return error;
+  }
+}
+
 export {
   getAllTimeContributions,
   getFirstCommit,
   fetchContributionData,
   getContributions,
   getStreakData,
+  getLastCommit
 };

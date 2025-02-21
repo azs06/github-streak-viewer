@@ -66,4 +66,28 @@ query ($username: String!, $fromDate: DateTime!, $toDate: DateTime!) {
 }
 `;
 
-export { CONTRIBUTION_QUERY, FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY_DATE_TIME };
+const LAST_COMMIT_QUERY = `
+query($login: String!) {
+  user(login: $login) {
+    repositories(first: 100, orderBy: {field: UPDATED_AT, direction: DESC}) {
+      nodes {
+        name
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history(first: 1) {
+                edges {
+                  node {
+                    committedDate
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
+export { CONTRIBUTION_QUERY, FIRST_COMMIT_QUERY, CONTRIBUTION_QUERY_DATE_TIME, LAST_COMMIT_QUERY };

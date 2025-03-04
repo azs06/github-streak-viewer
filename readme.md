@@ -12,4 +12,10 @@ npm start
 http://localhost:3002/streak/username
 ```
 
+```bash
+npm start:prod # To run in production mode
+```
+
+It uses pm2 to run in production mode. Make sure to install pm2 globally.
+
 Currently used on my github landing page: [azs06](https://github.com/azs06)

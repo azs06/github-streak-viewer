@@ -1,6 +1,6 @@
 ### A Node.js application to display Github streak using graphql
 
-## Exammple usa
+## Exammple usage
 
 ```bash
 git clone git@github.com:azs06/github-streak-viewer.git

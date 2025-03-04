@@ -3,7 +3,7 @@ import {
   getFirstCommit,
 } from "../../services/githubService.js";
 import { formatDate } from "../../utils/dateUtils.js";
-import { getSvg } from "../../utils/svgUtils.js";
+import { getSvg, getSVGRedux } from "../../utils/svgUtils.js";
 import { getRange } from "../../utils/githubUtils.js";
 
 async function streakController(req, res) {
@@ -18,7 +18,11 @@ async function streakController(req, res) {
       currentDate
     );
 
-    const formattedDate = formatDate(firstCommitDate);
+    const formattedDate = formatDate(firstCommitDate, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
 
     const { longestStreak, currentStreak, total } = streakData;
     const currentStreakRange = currentStreak ? getRange(currentStreak) : "";
@@ -26,7 +30,7 @@ async function streakController(req, res) {
     const longestStreakLength = longestStreak?.length || 0;
     const currentStreakLength = currentStreak?.length || 0;
 
-    const svg = getSvg({
+    const svg = getSVGRedux({
       currentStreak: currentStreakLength,
       currentStreakRange,
       longestStreak: longestStreakLength,

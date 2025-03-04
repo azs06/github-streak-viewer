@@ -4,7 +4,7 @@ import { contributionController, firstCommitController, latestCommitController }
 
 const router = express.Router();
 
-router.get("/contributions/:username", contributionController);
+router.get("/:username", contributionController);
 router.get("/first-commit/:username", firstCommitController);
 router.get('/last-commit/:username', latestCommitController)
 

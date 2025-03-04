@@ -15,11 +15,11 @@ async function contributionController(req, res) {
       firstCommitDate,
       currentDate
     );
-    return {
+    res.json({
       firstCommit: firstCommitData,
       totalCommits: streakData?.total || 0,
       ...streakData
-    };
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send("Error getting contribution data");
@@ -30,7 +30,7 @@ async function firstCommitController(req, res) {
   try {
     const { username } = req.params;
     const firstCommitData = await getFirstCommit(username);
-    return firstCommitData;
+    res.json(firstCommitData);
   } catch (error) {
     console.error(error);
     res.status(500).send("Error getting contribution data");
@@ -40,7 +40,7 @@ async function firstCommitController(req, res) {
 async function latestCommitController(req, res) {
   try {
     const { username } = req.params;
-    return getLastCommit(username);
+     res.json(getLastCommit(username));
   } catch (error) {
     console.error(error);
     res.status(500).send("Error getting contribution data");

@@ -1,6 +1,15 @@
 ### A Node.js application to display Github streak using graphql
 
-TODO
-[ ] Use https://www.npmjs.com/package/@cacheable/node-cache for caching
-[ ] Add better error handling
-[ ] Better date time parsing using date-fns or luxon
+## Exammple usa
+
+```bash
+git clone git@github.com:azs06/github-streak-viewer.git
+npm install
+npm start
+```
+
+```bash
+http://localhost:3002/streak/username
+```
+
+Currently used on my github landing page: [azs06](https://github.com/azs06)

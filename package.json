@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ./src/server.js",
     "dev": "node --inspect --watch-path=./ ./src/server.js",
-    "start:prod": "pm2 start ./src/server.js --name github-streak-viewer"
+    "start:prod": "pm2 start 'npm start' --name github-streak-viewer"
   },
   "author": "",
   "license": "ISC",

@@ -40,6 +40,9 @@ async function streakController(req, res) {
     });
 
     res.setHeader("Content-Type", "image/svg+xml");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.send(svg);
   } catch (error) {
     console.error(error);
